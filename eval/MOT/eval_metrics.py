@@ -46,4 +46,3 @@ def main(o_path,h_path):
 if __name__ == '__main__':
     path = '../../data/track/PETS09-S2L1/SORT_RES.txt'
     main(path,path)
-    
