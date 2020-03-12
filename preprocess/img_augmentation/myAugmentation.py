@@ -5,7 +5,9 @@ import numpy as np
 import cv2
 import time
 import os
-
+import matplotlib.pylab as plt
+import random
+import math
 
 class MyAugmentation():
     '''
@@ -170,6 +172,75 @@ class MyAugmentation():
 
         return parsed_labels
 
+    def randomRotate(self,frame,labels):
+        '''
+        随机旋转，默认绕着图像中心旋转
+        并且不改变图像的大小
+
+        label的处理方法：
+            1、找到框的中心。
+            2、找到旋转之后框的中心
+            3、以该中心重建检测框（w,h不变，且均与对应坐标轴平行
+        :param frame:
+        :param labels:
+        :return:
+        '''
+        # 图像大小
+        w,h = frame.size
+
+        # 得到旋转中心
+        rotate_centre = (int(w / 2), int(h / 2))
+
+        # 旋转图像
+        degree = random.randint(0,360) # 角度，30°，60°之类的
+        new_img = frame.rotate(degree)
+
+        # 获得x1y1x2y2表示的label
+        parsed_label = self.parse_label(frame,labels)
+
+        # 得到每个box的中心位置
+        centroid_x = (parsed_label[:,1]+parsed_label[:,3])/2# centroid x
+        centroid_y = (parsed_label[:,2]+parsed_label[:,4])/2# centroid y
+
+
+        # 得到弧度
+        radian = np.pi*(360-degree)/180
+
+        # 计算得到新的box中心位置
+        new_centroid_id = np.zeros((labels.shape[0],2))
+        #x0 = (x - rx0) * cos(a) - (y - ry0) * sin(a) + rx0;
+        #y0 = (x - rx0) * sin(a) + (y - ry0) * cos(a) + ry0;
+        new_centroid_id[:,0] = (centroid_x-rotate_centre[0])*np.cos(radian)-(centroid_y-rotate_centre[1])*np.sin(radian)+rotate_centre[0]
+        new_centroid_id[:,1] = (centroid_x-rotate_centre[0])*np.sin(radian)+(centroid_y-rotate_centre[1])*np.cos(radian)+rotate_centre[1]
+
+        #
+        new_labels = np.zeros_like(labels)
+        new_labels[:,0] = labels[:,0]
+        new_labels[:,1] = new_centroid_id[:,0]/w
+        new_labels[:,2] = new_centroid_id[:,1]/h
+        new_labels[:,3] = labels[:,3]
+        new_labels[:,4] = labels[:,4]
+
+        new_img, new_labels = self.label_filter(new_img,new_labels)
+
+        return new_img,new_labels
+
+    def label_filter(self,frame,labels):
+        '''
+        过滤一些超出边界的框
+        :param frame:
+        :param labels:
+        :return:
+        '''
+        w,h = frame.size
+        # [clas,xmin,ymin,xmax,ymax]
+        parsed_labels = self.parse_label(frame,labels)
+        contain_sample = np.argwhere((parsed_labels[:,1]>0) & (parsed_labels[:,2]>0) & (parsed_labels[:,3]<w) & (parsed_labels[:,4]<h))
+
+        new_labels = labels[contain_sample]
+        new_labels = np.squeeze(new_labels,axis=1)
+        return frame,new_labels
+
     def show(self, frame, labels,need_parse=True):
         '''
 
@@ -217,19 +288,31 @@ def main():
     测试
     :return:
     '''
-    path = '../output/'
+    path = '../../output/'
     ma = MyAugmentation()
-    image = Image.open('../data/detection/rebar/8ADCAE58.jpg')
-    labels = np.loadtxt('../data/detection/rebar/8ADCAE58.txt').reshape(-1, 5)
+    image = Image.open('../../data/detection/rebar/8ADCAE58.jpg')
+    labels = np.loadtxt('../../data/detection/rebar/8ADCAE58.txt').reshape(-1, 5)
 
-    new_img, new_labels = ma.pad2square(image, labels)
-    ma.save(new_img,new_labels,path)
+    new_img, new_labels = ma.randomRotate(image, labels)
+    # ma.save(new_img,new_labels,path)
 
     ma.show(new_img, new_labels)
 
 
 if __name__ == '__main__':
+
     main()
+    # image = Image.open('../../data/detection/rebar/8ADCAE58.jpg')
+    # print(image.size)
+    # plt.subplot(121)
+    # plt.imshow(image)
+    # # 测下来是逆时针绕着旋转中心转了
+    # img = image.rotate(45)
+    # print(img.size)
+    # plt.subplot(122)
+    # plt.imshow(img)
+    # plt.axis('off')  # 不显示坐标轴
+    # plt.show()
 
 
 

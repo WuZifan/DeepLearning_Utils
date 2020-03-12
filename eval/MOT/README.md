@@ -17,7 +17,7 @@ https://github.com/cheind/py-motmetrics
 
 * track数据，跟踪数据，需要指出每一帧，对于跟踪算法而言，目标A的坐标框以及目标A的trackID。
 
-####1.2 写入accumulator
+#### 1.2 写入accumulator
 
 
 1） 利用motmetrics创建accumulator。
@@ -29,10 +29,10 @@ https://github.com/cheind/py-motmetrics
     3、利用motmetrics中提供的算法计算gt框和track框的距离。
     4、按照格式将1和3的数据写入accumulator
     
-####1.3 计算矩阵
+#### 1.3 计算矩阵
 利用motmetrics计算MOTA等指标。
 
-####1.4 验证
+#### 1.4 验证
 将gt数据作为track数据输入，得到：
 
           num_frames  mota  motp
